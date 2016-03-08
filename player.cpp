@@ -1,5 +1,11 @@
 #include "player.h"
 
+
+
+Side other_side(Side side){
+    return (side == WHITE) ? BLACK : WHITE;
+}
+
 /*
  * Constructor for the player; initialize everything here. The side your AI is
  * on (BLACK or WHITE) is passed in as "side". The constructor must finish 
@@ -28,7 +34,9 @@ Player::Player(Side side) {
  */
 Player::~Player() {
 }
-
+void Player::setBoard(Board *board){
+    this->board = *board;
+}
 /*
  * Compute the next move given the opponent's last move. Your AI is
  * expected to keep track of the board on its own. If this is the first move,
@@ -42,62 +50,45 @@ Player::~Player() {
  * return NULL.
  */
 Move *Player::doMove(Move *opponentsMove, int msLeft) {
-    /* 
-     * TODO: Implement how moves your AI should play here. You should first
-     * process the opponent's opponents move before calculating your own move
-     */ 
-    Move candidate(0,0);
-    Move *bestCand = NULL;
-    float bestHeur = -100000000;
-    if(opponentsMove != NULL){
-        board.doMove(opponentsMove, op_side);
+    Move *best_move = new Move(0,0);
+    board.doMove(opponentsMove, op_side);
+    mini_max(best_move, &board, p_side, 2, msLeft);
+    if(best_move != NULL && best_move->getX() < 0){ 
+        best_move = NULL;
     }
-    for(int i = 0; i < 8; i++){
-        for(int j = 0; j < 8; j++){
-            candidate.setX(i);
-            candidate.setY(j);
-            if(board.checkMove(&candidate, p_side)){
-                float heur = heuristic(&candidate);
+    board.doMove(best_move, p_side);
 
-                if(heur > bestHeur){
-                    if(NULL == bestCand){
-                        bestCand = new Move(i, j);
-                    }
-                    else{
-                        *bestCand = candidate;
-                    }
-                   bestHeur = heur;
-                }
-            }
-        }   
-    }
-    board.doMove(bestCand, p_side);
-    return bestCand;
+    return best_move;
 }
 
-float Player::heuristic(Move *move){
+float Player::heuristic(Board *shadow_board, Side side){
     float val = 0;
-    shadowBoard = board;
-    shadowBoard.doMove(move, p_side);
-    Move probe(0,0);
-    val = shadowBoard.count(p_side) - shadowBoard.count(op_side);
+    Side opside = other_side(side);
+    val = shadow_board->count(side) - shadow_board->count(opside);
 
     if(testingMinimax){
         return val;
     }
 
-    if(move->getX() %7 == 0 || move->getY()%7 == 0 ){
-        val += 2;
+    for(int i = 0; i < 8; i+=7){
+        for(int j = 0; j < 8; j+=7){
+            if(shadow_board->get(side, i, j)){
+                val += 2;
+            }
+            if(shadow_board->get(opside, i, j)){
+                val -= 2;
+            }
+        }
     }
-    if(move->getX() %7 == 0 && move->getY()%7 == 0 ){
-        val += 2;
-    }
+
     val*=2;
+    Move probe(0,0);
+
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
             probe.setX(i);
             probe.setY(i);
-            if(shadowBoard.checkMove(&probe, op_side)){
+            if(shadowBoard.checkMove(&probe, opside)){
                 val -= 0.5;
             }
         }   
@@ -105,31 +96,34 @@ float Player::heuristic(Move *move){
     return val;
 }
 
-float mini_max(Move *best_move, int msLeft, int max_depth){
-}
-
-float base_case(Move *best_move, int msLeft){
-    Move candidate(0,0);
-    Move *bestCand = NULL;
-    float bestHeur = -100000000;
-    if(opponentsMove != NULL){
-        board.doMove(opponentsMove, op_side);
+float Player::mini_max(Move *best_move, Board *shadow_board, Side side, int max_depth, int msLeft){
+    if(max_depth == 0){
+        return heuristic(shadow_board, side);
     }
+
+    if(!(shadow_board->hasMoves(side))){
+        best_move->setX(-1);
+        return heuristic(shadow_board, side);
+    }
+
+    Move candidate(1,0), op_move(0,0);
+    int mult = (side == p_side) ? 1 : -1;
+    float bestHeur = -1000000;
+    Board curr_board;
+
     for(int i = 0; i < 8; i++){
         for(int j = 0; j < 8; j++){
             candidate.setX(i);
             candidate.setY(j);
-            if(board.checkMove(&candidate, p_side)){
-                float heur = heuristic(&candidate);
 
-                if(heur > bestHeur){
-                    if(NULL == bestCand){
-                        bestCand = new Move(i, j);
-                    }
-                    else{
-                        *best_move = candidate;
-                    }
-                   bestHeur = heur;
+            if(shadow_board->checkMove(&candidate, side)){
+                curr_board = *shadow_board;
+                curr_board.doMove(&candidate, side);
+
+                float heur = mini_max(&op_move, &curr_board, other_side(side), max_depth - 1, msLeft);
+                if(mult * heur > bestHeur){
+                    *best_move = candidate;
+                    bestHeur = heur;
                 }
             }
         }   
