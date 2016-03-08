@@ -71,6 +71,7 @@ bool Board::hasMoves(Side side) {
  * Returns true if a move is legal for the given side; false otherwise.
  */
 bool Board::checkMove(Move *m, Side side) {
+
     // Passing is only legal if you have no moves.
     if (m == NULL) return !hasMoves(side);
 
@@ -177,4 +178,23 @@ void Board::setBoard(char data[]) {
             taken.set(i);
         }
     }
+}
+
+void Board::print(){
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            if(!taken[j + 8*i]){
+                std::cerr << " ";
+            }
+            else if(black[j + 8*i]){
+                std::cerr << "b";
+            }
+            else{
+                std::cerr << "w";
+            }
+            std::cerr << "|";
+        }
+        std::cerr << std::endl;
+    }
+
 }
