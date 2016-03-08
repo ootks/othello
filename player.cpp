@@ -1,5 +1,4 @@
 #include "player.h"
-#define VERSION 1
 
 /*
  * Constructor for the player; initialize everything here. The side your AI is
@@ -18,13 +17,10 @@ Player::Player(Side side) {
     this->p_side = side;
     if(p_side == WHITE){
         op_side = BLACK;
-        std::cerr << "WHITE" << std::endl;
     }
     else{
         op_side = WHITE;
-        std::cerr << "BLACK" << std::endl;
     }
-    std::cerr << VERSION << std::endl;
 }
 
 /*
@@ -85,6 +81,11 @@ float Player::heuristic(Move *move){
     shadowBoard.doMove(move, p_side);
     Move probe(0,0);
     val = shadowBoard.count(p_side) - shadowBoard.count(op_side);
+
+    if(testingMinimax){
+        return val;
+    }
+
     if(move->getX() %7 == 0 || move->getY()%7 == 0 ){
         val += 2;
     }
@@ -102,4 +103,36 @@ float Player::heuristic(Move *move){
         }   
     }
     return val;
+}
+
+float mini_max(Move *best_move, int msLeft, int max_depth){
+}
+
+float base_case(Move *best_move, int msLeft){
+    Move candidate(0,0);
+    Move *bestCand = NULL;
+    float bestHeur = -100000000;
+    if(opponentsMove != NULL){
+        board.doMove(opponentsMove, op_side);
+    }
+    for(int i = 0; i < 8; i++){
+        for(int j = 0; j < 8; j++){
+            candidate.setX(i);
+            candidate.setY(j);
+            if(board.checkMove(&candidate, p_side)){
+                float heur = heuristic(&candidate);
+
+                if(heur > bestHeur){
+                    if(NULL == bestCand){
+                        bestCand = new Move(i, j);
+                    }
+                    else{
+                        *best_move = candidate;
+                    }
+                   bestHeur = heur;
+                }
+            }
+        }   
+    }
+    return bestHeur;
 }
