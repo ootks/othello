@@ -22,9 +22,12 @@ Player::Player(Side side) {
      */
     this->p_side = side;
     if(p_side == WHITE){
+        cerr<<"white"<<std::endl;
         op_side = BLACK;
     }
     else{
+
+        cerr<<"black"<<std::endl;
         op_side = WHITE;
     }
 }
@@ -52,7 +55,9 @@ void Player::setBoard(Board *board){
 Move *Player::doMove(Move *opponentsMove, int msLeft) {
     Move *best_move = new Move(0,0);
     board.doMove(opponentsMove, op_side);
-    mini_max(best_move, &board, p_side, 2, msLeft);
+    alpha = -1000000;
+    beta = 1000000;
+    mini_max(best_move, &board, p_side, 5, msLeft);
     if(best_move != NULL && best_move->getX() < 0){ 
         best_move = NULL;
     }
@@ -98,7 +103,8 @@ float Player::heuristic(Board *shadow_board, Side side){
 
 float Player::mini_max(Move *best_move, Board *shadow_board, Side side, int max_depth, int msLeft){
     if(max_depth == 0){
-        return heuristic(shadow_board, side);
+        float heur = heuristic(shadow_board, side);
+        return heur;
     }
 
     if(!(shadow_board->hasMoves(side))){
@@ -119,14 +125,30 @@ float Player::mini_max(Move *best_move, Board *shadow_board, Side side, int max_
             if(shadow_board->checkMove(&candidate, side)){
                 curr_board = *shadow_board;
                 curr_board.doMove(&candidate, side);
-
+			    
                 float heur = mini_max(&op_move, &curr_board, other_side(side), max_depth - 1, msLeft);
                 if(mult * heur > bestHeur){
                     *best_move = candidate;
                     bestHeur = heur;
+                    if(side == p_side){
+                        if(bestHeur < beta){
+                          return bestHeur;
+                        }
+                        if(bestHeur > alpha){
+                            alpha = bestHeur;
+                        }
+                    }
+                    else{
+                        if(bestHeur > alpha){
+                            return bestHeur;
+                        }
+                        if(bestHeur > - beta){
+                            beta = -bestHeur;
+                        }
+                    }
                 }
             }
-        }   
+        }
     }
     return bestHeur;
 }

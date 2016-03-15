@@ -10,6 +10,7 @@ class Player {
 private:
 	Board board, shadowBoard;
 	Side p_side, op_side;
+	float alpha, beta;
 public:
     Player(Side side);
     ~Player();
